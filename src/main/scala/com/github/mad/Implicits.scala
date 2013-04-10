@@ -33,7 +33,11 @@ trait BsonDocImplicits {
   implicit def bsonElement2Element(key: String, element: BsonElement): ElementAssignable = {
     element match {
       case BsonDouble(v) => new DoubleElement(key, v)
-      case BsonString(v) => new StringElement(key, v)
+      case BsonString(v) =>
+        Option(v) match {
+          case Some(v) => new StringElement(key, v)
+          case None => new NullElement(key)
+        }
       case BsonBoolean(v) => new BooleanElement(key, v)
       case BsonInt(v) => new IntegerElement(key, v)
       case BsonLong(v) => new LongElement(key, v)
