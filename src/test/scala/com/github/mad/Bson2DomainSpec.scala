@@ -5,7 +5,7 @@ import scala.language.implicitConversions
 import org.specs2.specification.BeforeExample
 import org.specs2.mutable.Specification
 
-case class Model(id: Int, value: Int, keys: Map[String, String] = Map(), op: Option[Int] = None, list: List[String] = List(),
+case class Model(id: Int, value: Int, keys: Map[String, Any] = Map(), op: Option[Int] = None, list: List[String] = List(),
                  listObj: List[Model] = List())
 
 case object Model {
@@ -22,7 +22,7 @@ case object Model {
     def fromBson(d: BsonDoc): Model = Model(
       d[Int]("_id"),
       d[Int]("value"),
-      d[Map[String, String]]("keys"),
+      d[Map[String, Any]]("keys"),
       d[Option[Int]]("op"),
       d[List[String]]("list"),
       d[List[Model]]("listObj")
@@ -55,6 +55,7 @@ class Bson2DomainSpec extends Specification with BeforeExample {
         "listString" -> List("3", "4", "5"),
         "mapStringString" -> Map("key" -> "v1", "key2" -> "v2"),
         "mapStringDouble" -> Map("key" -> 45.5, "key2" -> 23.2),
+        "mapStringAny" -> Map("key" -> 45.5, "key2" -> "2"),
         "object" -> Model(1, 5, Map("k1" -> "v1"), None, List("Fabian", "rockt"), List(Model(2, 6))),
         "listObjects" -> List(Model(1, 5), Model(2, 6))
       )
@@ -63,8 +64,9 @@ class Bson2DomainSpec extends Specification with BeforeExample {
       bsonDoc must beEqualTo(Bson.doc(
         "_id" -> 1,
         "listString" -> Bson.arr("3", "4", "5"),
-        "mapStringString" -> Bson.doc("key" -> "v1", "key2" -> "v2"),
-        "mapStringDouble" -> Bson.doc("key" -> 45.5, "key2" -> 23.2),
+        "mapStringString" -> Bson.doc("key" -> BsonAny("v1"), "key2" -> BsonAny("v2")),
+        "mapStringDouble" -> Bson.doc("key" -> BsonAny(45.5), "key2" -> BsonAny(23.2)),
+        "mapStringAny" -> Bson.doc("key" -> BsonAny(45.5), "key2" -> BsonAny("2")),
         "object" -> Bson.doc(
           "_id" -> 1,
           "value" -> 5,
@@ -82,7 +84,7 @@ class Bson2DomainSpec extends Specification with BeforeExample {
   }
   "i want read and write nicely with case classes and it" should {
     "work" in {
-      val model = Model(1, 5, Map("k1" -> "v1"), None, List("Fabian", "rockt"), List(Model(2, 6)))
+      val model = Model(1, 5, Map("k1" -> "v1", "k2" -> 45), None, List("Fabian", "rockt"), List(Model(2, 6)))
       coll.insert(model)
       val result = coll.findOneAs[Model](Bson.doc("_id" -> 1)).get
 

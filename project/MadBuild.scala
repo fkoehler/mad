@@ -9,7 +9,7 @@ object MadBuild extends Build {
     settings = Project.defaultSettings ++ Seq(
       name := "mad",
       organization := "com.github.mad",
-      version := "0.1-SNAPSHOT",
+      version := "0.1.1",
       scalaVersion := "2.10.1",
       libraryDependencies ++= Seq(
         "com.jsuereth" %% "scala-arm" % "1.3",

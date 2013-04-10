@@ -38,6 +38,10 @@ trait ToBsonImplicits {
     def toBson(v: Map[String, T]): BsonElement = v.foldLeft(Bson.doc())((doc, kv) => doc + (kv._1 -> kv._2))
   }
 
+  implicit def mapWithAnyToBsonElement = new ToBsonElement[Map[String, Any]] {
+    def toBson(v: Map[String, Any]): BsonElement = v.foldLeft(Bson.doc())((doc, kv) => doc + (kv._1 -> new BsonAny(kv._2)))
+  }
+
   implicit def optionToBsonElement[T](implicit c: ToBsonElement[T]) = new ToBsonElement[Option[T]] {
     def toBson(v: Option[T]): BsonElement = v match {
       case Some(v) => v
@@ -85,6 +89,15 @@ trait FromBsonImplicits {
 
   implicit def mapFromBsonElement[T](implicit c: FromBsonElement[T]) = new FromBsonElement[Map[String, T]] {
     def fromBson(v: BsonElement): Map[String, T] = v.asInstanceOf[BsonDoc].elements.foldLeft(Map[String, T]())((map, kv) => map + (kv._1 -> c.fromBson(kv._2)))
+  }
+
+  implicit def mapWithAnyFromBsonElement = new FromBsonElement[Map[String, Any]] {
+    def fromBson(v: BsonElement): Map[String, Any] = v.asInstanceOf[BsonDoc].elements.foldLeft(Map[String, Any]())((map, kv) => map + (kv._1 -> (kv._2 match {
+      case BsonString(v) => v
+      case BsonInt(v) => v
+      case BsonLong(v) => v
+      case BsonDouble(v) => v
+    })))
   }
 
   implicit def optionFromBsonElement[T](implicit c: FromBsonElement[T]) = new FromBsonElement[Option[T]] {
@@ -167,6 +180,7 @@ case class BsonString(value: String) extends BsonElement
 case class BsonDouble(value: Double) extends BsonElement
 case class BsonDateTime(value: DateTime) extends BsonElement
 case class BsonBoolean(value: Boolean) extends BsonElement
+case class BsonAny(value: Any) extends BsonElement
 case object BsonNull extends BsonElement
 
 abstract class BsonElement {

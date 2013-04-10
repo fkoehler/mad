@@ -44,7 +44,15 @@ trait BsonDocImplicits {
       case BsonDateTime(v) => new TimestampElement(key, v.getMillis)
       case doc@BsonDoc(v) => new DocumentElement(key, bsonDoc2Document(doc))
       case BsonNull => new NullElement(key)
-      case _ => throw new RuntimeException("not yet implemented")
+      case BsonAny(v) => v match {
+        case v: String => new StringElement(key, v)
+        case v: Int => new IntegerElement(key, v)
+        case v: Double => new DoubleElement(key, v)
+        case v: Long => new LongElement(key, v)
+        case v: DateTime => new TimestampElement(key, v.getMillis)
+        case v: Boolean => new BooleanElement(key, v)
+      }
+      case v @ _ => throw new RuntimeException("not yet implemented for value: " + v)
     }
   }
 
