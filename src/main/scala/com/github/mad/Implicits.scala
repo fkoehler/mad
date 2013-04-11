@@ -6,7 +6,7 @@ import com.allanbank.mongodb.bson.element._
 import java.util.Date
 import org.joda.time.DateTime
 
-object Implicits extends BsonDocImplicits with FutureWrapper with BsonImplicits
+object Implicits extends BsonDocImplicits with BsonImplicits
 
 trait BsonDocImplicits {
 
@@ -88,15 +88,5 @@ trait BsonDocImplicits {
   }
 
   private def elemValAs[T](element: Element): T = element.getValueAsObject.asInstanceOf[T]
-
-}
-
-trait FutureWrapper {
-
-  import scala.concurrent._
-  import scala.concurrent.ExecutionContext.Implicits.global
-  import scala.language.implicitConversions
-
-  implicit def javaFuture2ScalaFuture[T](javaFuture: java.util.concurrent.Future[T]): Future[T] = future(javaFuture.get)
 
 }

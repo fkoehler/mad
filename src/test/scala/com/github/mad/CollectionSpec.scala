@@ -8,10 +8,11 @@ import org.specs2.specification.BeforeExample
 import org.joda.time.DateTime
 
 class CollectionSpec extends Specification with BeforeExample {
+  sequential
 
   import Common._
 
-  protected def before = coll.drop
+  protected def before = coll.drop()
 
   val simpleDoc = Bson.doc("_id" -> 1, "name" -> "fabian")
 
@@ -20,25 +21,10 @@ class CollectionSpec extends Specification with BeforeExample {
       coll.insert(simpleDoc)
       coll.findOneById(1).get must equalTo(simpleDoc)
     }
-    "insert a simple doc correctly async" in {
-      Await.ready(coll.insertAsync(simpleDoc), timeout)
-      coll.findOneById(1).get must equalTo(simpleDoc)
-    }
     "update a simple doc correctly sync" in {
       coll.insert(simpleDoc)
       coll.update(simpleDoc, Bson.doc("$set" -> Bson.doc("name" -> "köhler")))
       coll.findOneById(1).get[String]("name") must equalTo("köhler")
-    }
-    "multi update a simple doc correctly sync" in {
-      coll.insert(simpleDoc)
-      coll.insert(Bson.doc("_id" -> 2, "name" -> "fabian"))
-
-      coll.update(Bson.doc("name" -> "fabian"), Bson.doc("$set" -> Bson.doc("name" -> "köhler")), multi = false)
-      coll.findOneById(1).get[String]("name") must equalTo("köhler")
-      coll.findOneById(2).get[String]("name") must equalTo("fabian")
-
-      coll.update(Bson.doc("name" -> "fabian"), Bson.doc("$set" -> Bson.doc("name" -> "köhler")), multi = true)
-      coll.findOneById(2).get[String]("name") must equalTo("köhler")
     }
     "upsert a simple doc correctly sync" in {
       coll.update(Bson.doc("_id" -> 1, "name" -> "köhler"), simpleDoc, upsert = true)
@@ -53,14 +39,18 @@ class CollectionSpec extends Specification with BeforeExample {
       coll.save(simpleDoc)
       coll.findOneById(1).get must equalTo(simpleDoc)
     }
+    "insert a simple doc correctly async" in {
+      Await.ready(coll.insertAsync(simpleDoc), timeout)
+      coll.findOneById(1).get must equalTo(simpleDoc)
+    }
     "save a simple doc correctly async" in {
       Await.ready(coll.saveAsync(simpleDoc), timeout)
       coll.findOneById(1).get must equalTo(simpleDoc)
     }
     "find builder with skip and limit" in {
-      coll.save(Bson.doc("_id" -> 1, "name" -> "fabian"))
-      coll.save(Bson.doc("_id" -> 2, "name" -> "fabian"))
-      coll.save(Bson.doc("_id" -> 3, "name" -> "fabian"))
+      coll.save(Bson.doc("_id" -> 60, "name" -> "fabian"))
+      coll.save(Bson.doc("_id" -> 70, "name" -> "fabian"))
+      coll.save(Bson.doc("_id" -> 80, "name" -> "fabian"))
 
       val find = Find()
         .query(Bson.doc("name" -> "fabian"))
@@ -68,7 +58,7 @@ class CollectionSpec extends Specification with BeforeExample {
         .skip(1)
 
       coll.find(find).acquireAndGet(_.size must beEqualTo(1))
-      coll.find(find).acquireAndGet(_.next must beEqualTo(Bson.doc("_id" -> 2, "name" -> "fabian")))
+      coll.find(find).acquireAndGet(_.next must beEqualTo(Bson.doc("_id" -> 70, "name" -> "fabian")))
     }
     "find a doc by query (managed resource)" in {
       coll.save(simpleDoc)
@@ -96,14 +86,11 @@ class CollectionSpec extends Specification with BeforeExample {
 
       true must beEqualTo(true)
     }
-    "create a index in the correct order" in {
-      coll.createIndex(Bson.doc("_id" -> 1, "name" -> 1), Bson.doc("background" -> true))
-      // TODO how to test this?
-    }
     "insert a date time correctly full roundtrip" in {
       val date = DateTime.now
       coll.insert(Bson.doc("_id" -> 99, "datet" -> date))
       coll.findOneById(99).get[DateTime]("datet") must beEqualTo(date)
     }
   }
+
 }

@@ -43,6 +43,7 @@ case object Model {
 }
 
 class Bson2DomainSpec extends Specification with BeforeExample {
+  sequential
 
   import Common._
 
@@ -85,8 +86,8 @@ class Bson2DomainSpec extends Specification with BeforeExample {
   "i want read and write nicely with case classes and it" should {
     "work" in {
       val model = Model(1, 5, Map("k1" -> "v1", "k2" -> 45), None, List("Fabian", "rockt"), List(Model(2, 6)))
-      coll.insert(model)
-      val result = coll.findOneAs[Model](Bson.doc("_id" -> 1)).get
+      db("test2").insert(model)
+      val result = db("test2").findOneAs[Model](Bson.doc("_id" -> 1)).get
 
       model must beEqualTo(result)
     }

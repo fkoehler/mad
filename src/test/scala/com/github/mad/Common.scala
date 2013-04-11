@@ -13,6 +13,6 @@ object Common {
   val db = client("madtest")
   val coll = db("test")
 
-  val timeout = 10 seconds
+  val timeout = 3 seconds
 
 }

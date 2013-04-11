@@ -1,49 +1,57 @@
 package com.github.mad
 
-import com.allanbank.mongodb.{MongoCollection => MadMongoCollection, MongoIterator => MadMongoIterator, MongoCursorControl, Durability}
+import com.allanbank.mongodb.{MongoCollection => MadMongoCollection, MongoIterator => MadMongoIterator, Callback, MongoCursorControl, Durability}
 import Implicits._
 import resource._
 import com.allanbank.mongodb.bson.{Element, Document}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent._
 import com.allanbank.mongodb.builder.Find.{Builder => MadBuilder}
+import scala.concurrent.{Promise, Future}
 
 class MongoCollection(val underlying: MadMongoCollection) {
   def name = underlying.getName
 
-  def drop() = underlying.drop
+  def drop() = underlying.drop()
+
+  def delete() = underlying.delete(Bson.doc())
 
   def insert[T](model: T)(implicit c: ToBsonDoc[T]): Int = underlying.insert(c.toBson(model))
 
   def insert(doc: BsonDoc): Int = underlying.insert(doc)
 
-  def insertAsync(doc: BsonDoc): Future[Int] = underlying.insertAsync(doc).mapTo[Int]
+  def insertAsync(doc: BsonDoc): Future[Int] =
+    wrapCallback[Integer]((cb: Callback[Integer]) => underlying.insertAsync(cb, doc)).mapTo[Int]
 
-  def insertAsync(doc: BsonDoc, durability: Durability): Future[Int] = underlying.insertAsync(durability, doc).mapTo[Int]
+  def insertAsync(doc: BsonDoc, durability: Durability): Future[Int] =
+    wrapCallback[Integer]((cb: Callback[Integer]) => underlying.insertAsync(cb, durability, doc)).mapTo[Int]
 
   def save(doc: BsonDoc): Int = underlying.save(doc)
 
   def save[T](model: T)(implicit c: ToBsonDoc[T]): Int = underlying.save(c.toBson(model))
 
-  def saveAsync(doc: BsonDoc): Future[Int] = underlying.saveAsync(doc).mapTo[Int]
+  def saveAsync(doc: BsonDoc): Future[Int] =
+    wrapCallback[Integer]((cb: Callback[Integer]) => underlying.saveAsync(cb, doc)).mapTo[Int]
 
   def update(query: BsonDoc, update: BsonDoc, multi: Boolean = false, upsert: Boolean = false): Long = underlying.update(query, update, multi, upsert)
 
   def updateAsync(query: BsonDoc, update: BsonDoc, multi: Boolean = false, upsert: Boolean = false, durability: Option[Durability] = None): Future[Long] =
     durability match {
-      case Some(d) => underlying.updateAsync(query, update, multi, upsert, d).mapTo[Long]
-      case None => underlying.updateAsync(query, update, multi, upsert).mapTo[Long]
+      case Some(d) => wrapCallback[java.lang.Long]((cb: Callback[java.lang.Long]) => underlying.updateAsync(cb, query, update, multi, upsert, d)).mapTo[Long]
+      case None => wrapCallback[java.lang.Long]((cb: Callback[java.lang.Long]) => underlying.updateAsync(cb, query, update, multi, upsert)).mapTo[Long]
     }
 
   def findOne(doc: BsonDoc): Option[BsonDoc] = Option(underlying.findOne(doc))
 
   def findOneAs[T](doc: BsonDoc)(implicit c: FromBsonDoc[T]): Option[T] = findOne(doc).map(c.fromBson)
 
-  def findOneAsync(doc: BsonDoc): Future[Option[BsonDoc]] = underlying.findOneAsync(doc).map(Option(_))
+  def findOneAsync(doc: BsonDoc): Future[Option[BsonDoc]] =
+    wrapCallback((cb: Callback[Document]) => underlying.findOneAsync(cb, doc)).map(Option(_))
 
-  def findOneAsyncAs[T](doc: BsonDoc)(implicit c: FromBsonDoc[T]): Future[Option[T]] = underlying.findOneAsync(doc).map(document => Option(c.fromBson(document)))
+  def findOneAsyncAs[T](doc: BsonDoc)(implicit c: FromBsonDoc[T]): Future[Option[T]] =
+    wrapCallback((cb: Callback[Document]) => underlying.findOneAsync(cb, doc)).map(document => Option(c.fromBson(document)))
 
-  def findOneAsyncAs[T](find: MadBuilder)(implicit c: FromBsonDoc[T]): Future[Option[T]] = underlying.findOneAsync(find).map(doc => Option(c.fromBson(doc)))
+  def findOneAsyncAs[T](find: MadBuilder)(implicit c: FromBsonDoc[T]): Future[Option[T]] =
+    wrapCallback((cb: Callback[Document]) => underlying.findOneAsync(cb, find)).map(doc => Option(c.fromBson(doc)))
 
   def findOneById(id: Int): Option[BsonDoc] = findOne(Bson.doc("_id" -> id))
 
@@ -71,9 +79,11 @@ class MongoCollection(val underlying: MadMongoCollection) {
   def findAndApplyAs[T](f: MadBuilder)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Unit =
     find(f).acquireAndGet(_.map(c.fromBson).foreach(docFunc))
 
-  def findAsync(query: BsonDoc): Future[ManagedMongoIterator] = underlying.findAsync(query).map(iter => ManagedMongoIterator(managed(MongoIterator(iter))))
+  def findAsync(query: BsonDoc): Future[ManagedMongoIterator] =
+    wrapCallback((cb: Callback[MadMongoIterator[Document]]) => underlying.findAsync(cb, query)).map(iter => ManagedMongoIterator(managed(MongoIterator(iter))))
 
-  def findAsync(find: MadBuilder): Future[ManagedMongoIterator] = underlying.findAsync(find.build()).map(iter => ManagedMongoIterator(managed(MongoIterator(iter))))
+  def findAsync(find: MadBuilder): Future[ManagedMongoIterator] =
+    wrapCallback((cb: Callback[MadMongoIterator[Document]]) => underlying.findAsync(cb, find.build())).map(iter => ManagedMongoIterator(managed(MongoIterator(iter))))
 
   def findAsyncAndApply(query: BsonDoc)(docFunc: (BsonDoc) => Unit): Future[Unit] = findAsync(query).map(_.andApply(docFunc))
 
@@ -95,9 +105,21 @@ class MongoCollection(val underlying: MadMongoCollection) {
 
   def count(query: BsonDoc): Long = underlying.count(query)
 
-  def countAsync: Future[Long] = future(underlying.countAsync().get)
+  def countAsync: Future[Long] = wrapCallback((cb: Callback[java.lang.Long]) => underlying.countAsync(cb)).mapTo[Long]
 
-  def countAsync(query: BsonDoc): Future[Long] = future(underlying.countAsync(query).get)
+  def countAsync(query: BsonDoc): Future[Long] = wrapCallback((cb: Callback[java.lang.Long]) => underlying.countAsync(cb, query)).mapTo[Long]
+
+  private def wrapCallback[T](opExecutor: (Callback[T]) => Unit): Future[T] = {
+    val result = Promise[T]
+    val callback = new Callback[T] {
+      def callback(p1: T) = result.success(p1)
+
+      def exception(p1: Throwable) = result.failure(p1)
+    }
+    opExecutor.apply(callback)
+    result.future
+  }
+
 }
 
 object Find {
