@@ -157,33 +157,70 @@ case class BsonDoc(elements: Seq[(String, BsonElement)]) extends BsonElement {
     case None => None
   }
 
-  override def toString() = toStr()
+  override def toString() =  toStr()
 
-  private def toStr(level: Int = 0): String = elements.foldLeft("") {
+  import BsonDoc.indent
+  def toStr(level: Int = 0): String = "{\n" + elements.foldLeft("") {
     (s, kv) =>
-      s + s"${"  " * level}${kv._1}: " + (if (kv._2.isInstanceOf[BsonDoc]) {
+      s + indent(level) + s"${kv._1}: " + (if (kv._2.isInstanceOf[BsonDoc]) {
         kv._2.asInstanceOf[BsonDoc].toStr(level + 1)
       } else {
-        kv._2.toString
+        kv._2.toStr(level) + ",\n"
       })
-  }
+  } + indent(level - 1) + "}\n"
 
 }
+
 case class BsonArray(elements: Seq[BsonElement]) extends BsonElement {
   def asDocs: Seq[BsonDoc] = elements.map(_.asInstanceOf[BsonDoc])
+
   /** append to array */
   def :+(element: BsonElement): BsonArray = BsonArray(elements :+ element)
+
+  import BsonDoc.indent
+  def toStr(level: Int) = "[" + elements.map("\n" + indent(level + 1) + _.toStr(level + 2)).mkString(",") + "\n" + indent(level) + "]"
 }
-case class BsonInt(value: Int) extends BsonElement
-case class BsonLong(value: Long) extends BsonElement
-case class BsonString(value: String) extends BsonElement
-case class BsonDouble(value: Double) extends BsonElement
-case class BsonDateTime(value: DateTime) extends BsonElement
-case class BsonBoolean(value: Boolean) extends BsonElement
-case class BsonAny(value: Any) extends BsonElement
-case object BsonNull extends BsonElement
+
+case class BsonInt(value: Int) extends BsonElement {
+  def toStr(level: Int) = value.toString
+}
+
+case class BsonLong(value: Long) extends BsonElement {
+  def toStr(level: Int) = value.toString
+}
+
+case class BsonString(value: String) extends BsonElement {
+  def toStr(level: Int) = '"' + value.toString + '"'
+}
+
+case class BsonDouble(value: Double) extends BsonElement {
+  def toStr(level: Int) = value.toString
+}
+
+case class BsonDateTime(value: DateTime) extends BsonElement {
+  def toStr(level: Int) = value.toString
+}
+
+case class BsonBoolean(value: Boolean) extends BsonElement {
+  def toStr(level: Int) = value.toString
+}
+
+case class BsonAny(value: Any) extends BsonElement {
+  def toStr(level: Int) = value.toString
+}
+
+case object BsonNull extends BsonElement {
+  def toStr(level: Int) = "null"
+}
+
+case object BsonDoc {
+  def indent(level: Int) = s"${"  " * (level + 1)}"
+}
 
 abstract class BsonElement {
   def getAs[T]: T = this.asInstanceOf[T]
+
   def as[T](implicit c: FromBsonElement[T]): T = c.fromBson(this)
+
+  def toStr(level: Int): String
 }
