@@ -48,10 +48,16 @@ class MongoCollection(val underlying: MadMongoCollection) {
     wrapCallback((cb: Callback[Document]) => underlying.findOneAsync(cb, doc)).map(Option(_))
 
   def findOneAsyncAs[T](doc: BsonDoc)(implicit c: FromBsonDoc[T]): Future[Option[T]] =
-    wrapCallback((cb: Callback[Document]) => underlying.findOneAsync(cb, doc)).map(document => Option(c.fromBson(document)))
+    wrapCallback((cb: Callback[Document]) => underlying.findOneAsync(cb, doc)).map(document => Option(document) match {
+    case Some(doc) => Some(c.fromBson(doc))
+    case None => None
+  })
 
   def findOneAsyncAs[T](find: MadBuilder)(implicit c: FromBsonDoc[T]): Future[Option[T]] =
-    wrapCallback((cb: Callback[Document]) => underlying.findOneAsync(cb, find)).map(doc => Option(c.fromBson(doc)))
+    wrapCallback((cb: Callback[Document]) => underlying.findOneAsync(cb, find)).map(doc => Option(doc) match {
+      case Some(doc) => Some(c.fromBson(doc))
+      case None => None
+    })
 
   def findOneById(id: Int): Option[BsonDoc] = findOne(Bson.doc("_id" -> id))
 
