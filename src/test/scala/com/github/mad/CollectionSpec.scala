@@ -62,13 +62,13 @@ class CollectionSpec extends Specification with BeforeExample {
         .limit(1)
         .skip(1)
 
-      coll.find(find).acquireAndGet(_.size must beEqualTo(1))
-      coll.find(find).acquireAndGet(_.next must beEqualTo(Bson.doc("_id" -> 70, "name" -> "fabian")))
+      coll.find(find).size must beEqualTo(1)
+      coll.find(find).next must beEqualTo(Bson.doc("_id" -> 70, "name" -> "fabian"))
     }
     "find a doc by query (managed resource)" in {
       coll.save(simpleDoc)
-      coll.find(Bson.doc("_id" -> 1)).acquireAndGet(_.size must beEqualTo(1))
-      coll.find(Bson.doc("_id" -> 1)).acquireAndGet(_.next must beEqualTo(simpleDoc))
+      coll.find(Bson.doc("_id" -> 1)).size must beEqualTo(1)
+      coll.find(Bson.doc("_id" -> 1)).next must beEqualTo(simpleDoc)
     }
     "find a doc by query (provide function to execute for every doc)" in {
       coll.save(simpleDoc)
@@ -79,8 +79,8 @@ class CollectionSpec extends Specification with BeforeExample {
     }
     "find a doc by query (managed resource) async" in {
       coll.save(simpleDoc)
-      Await.result(coll.findAsync(Bson.doc("_id" -> 1)), timeout).acquireAndGet(_.size must beEqualTo(1))
-      Await.result(coll.findAsync(Bson.doc("_id" -> 1)), timeout).acquireAndGet(_.next must beEqualTo(simpleDoc))
+      Await.result(coll.findAsync(Bson.doc("_id" -> 1)), timeout).size must beEqualTo(1)
+      Await.result(coll.findAsync(Bson.doc("_id" -> 1)), timeout).next must beEqualTo(simpleDoc)
     }
     "find a doc by query (provide function to execute for every doc) async" in {
       coll.save(simpleDoc)

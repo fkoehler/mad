@@ -71,32 +71,67 @@ class MongoCollection(val underlying: MadMongoCollection) {
 
   def findOneByIdAsyncAs[T](id: String)(implicit c: FromBsonDoc[T]): Future[Option[T]] = findOneByIdAsync(id).map(_.map(c.fromBson))
 
-  def find(find: MadBuilder): ManagedMongoIterator = ManagedMongoIterator(managed(MongoIterator(underlying.find(find))))
+  def managedFind(find: MadBuilder): ManagedMongoIterator = ManagedMongoIterator(managed(MongoIterator(underlying.find(find))))
 
-  def find(query: BsonDoc): ManagedMongoIterator = ManagedMongoIterator(managed(MongoIterator(underlying.find(query))))
+  def managedFind(query: BsonDoc): ManagedMongoIterator = ManagedMongoIterator(managed(MongoIterator(underlying.find(query))))
 
-  def findAndApply(query: BsonDoc)(docFunc: (BsonDoc) => Unit): Unit = find(query).acquireAndGet(_.foreach(docFunc))
+  def managedFindAndApply(query: BsonDoc)(docFunc: (BsonDoc) => Unit): Unit = managedFind(query).acquireAndGet(_.foreach(docFunc))
 
-  def findAndApply(f: MadBuilder)(docFunc: (BsonDoc) => Unit): Unit = find(f).acquireAndGet(_.foreach(docFunc))
+  def managedFindAndApply(f: MadBuilder)(docFunc: (BsonDoc) => Unit): Unit = managedFind(f).acquireAndGet(_.foreach(docFunc))
 
-  def findAndApplyAs[T](query: BsonDoc)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Unit =
-    find(query).acquireAndGet(_.map(c.fromBson).foreach(docFunc))
+  def managedFindAndApplyAs[T](query: BsonDoc)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Unit =
+    managedFind(query).acquireAndGet(_.map(c.fromBson).foreach(docFunc))
 
-  def findAndApplyAs[T](f: MadBuilder)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Unit =
-    find(f).acquireAndGet(_.map(c.fromBson).foreach(docFunc))
+  def managedFindAndApplyAs[T](f: MadBuilder)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Unit =
+    managedFind(f).acquireAndGet(_.map(c.fromBson).foreach(docFunc))
 
-  def findAsync(query: BsonDoc): Future[ManagedMongoIterator] =
+  def managedFindAsync(query: BsonDoc): Future[ManagedMongoIterator] =
     wrapCallback((cb: Callback[MadMongoIterator[Document]]) => underlying.findAsync(cb, query)).map(iter => ManagedMongoIterator(managed(MongoIterator(iter))))
 
-  def findAsync(find: MadBuilder): Future[ManagedMongoIterator] =
+  def managedFindAsync(find: MadBuilder): Future[ManagedMongoIterator] =
     wrapCallback((cb: Callback[MadMongoIterator[Document]]) => underlying.findAsync(cb, find.build())).map(iter => ManagedMongoIterator(managed(MongoIterator(iter))))
 
-  def findAsyncAndApply(query: BsonDoc)(docFunc: (BsonDoc) => Unit): Future[Unit] = findAsync(query).map(_.andApply(docFunc))
+  def managedFindAsyncAndApply(query: BsonDoc)(docFunc: (BsonDoc) => Unit): Future[Unit] = managedFindAsync(query).map(_.andApply(docFunc))
 
-  def findAsyncAndApply(find: MadBuilder)(docFunc: (BsonDoc) => Unit): Future[Unit] = findAsync(find).map(_.andApply(docFunc))
+  def managedFindAsyncAndApply(find: MadBuilder)(docFunc: (BsonDoc) => Unit): Future[Unit] = managedFindAsync(find).map(_.andApply(docFunc))
+
+  def managedFindAsyncAndApplyAs[T](find: MadBuilder)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Future[Unit] =
+    managedFindAsync(find).map(_.acquireAndGet(_.map(c.fromBson).foreach(docFunc)))
+
+  def find(query: BsonDoc): MongoIterator = MongoIterator(underlying.find(query))
+
+  def find(find: MadBuilder): MongoIterator = MongoIterator(underlying.find(find))
+
+  def findAs[T](find: MadBuilder)(implicit c: FromBsonDoc[T]): Iterator[T] = {
+    val underlyingIter = underlying.find(find)
+    new Iterator[T] {
+      def hasNext: Boolean = underlyingIter.hasNext
+      def next(): T = c.fromBson(underlyingIter.next())
+    }
+  }
+
+  def findAndApply(query: BsonDoc)(docFunc: (BsonDoc) => Unit): Unit = find(query).foreach(docFunc)
+
+  def findAndApply(f: MadBuilder)(docFunc: (BsonDoc) => Unit): Unit = find(f).foreach(docFunc)
+
+  def findAndApplyAs[T](query: BsonDoc)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Unit =
+    find(query).map(c.fromBson).foreach(docFunc)
+
+  def findAndApplyAs[T](f: MadBuilder)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Unit =
+    find(f).map(c.fromBson).foreach(docFunc)
+
+  def findAsync(query: BsonDoc): Future[MongoIterator] =
+    wrapCallback((cb: Callback[MadMongoIterator[Document]]) => underlying.findAsync(cb, query)).map(MongoIterator(_))
+
+  def findAsync(find: MadBuilder): Future[MongoIterator] =
+    wrapCallback((cb: Callback[MadMongoIterator[Document]]) => underlying.findAsync(cb, find.build())).map(MongoIterator(_))
+
+  def findAsyncAndApply(query: BsonDoc)(docFunc: (BsonDoc) => Unit): Future[Unit] = findAsync(query).map(_.foreach(docFunc))
+
+  def findAsyncAndApply(find: MadBuilder)(docFunc: (BsonDoc) => Unit): Future[Unit] = findAsync(find).map(_.foreach(docFunc))
 
   def findAsyncAndApplyAs[T](find: MadBuilder)(docFunc: (T) => Unit)(implicit c: FromBsonDoc[T]): Future[Unit] =
-    findAsync(find).map(_.acquireAndGet(_.map(c.fromBson).foreach(docFunc)))
+    findAsync(find).map(_.map(c.fromBson).foreach(docFunc))
 
   def durability_=(durability: Durability) = underlying.setDurability(durability)
 
