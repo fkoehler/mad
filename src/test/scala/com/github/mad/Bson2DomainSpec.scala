@@ -50,9 +50,17 @@ class Bson2DomainSpec extends Specification with BeforeExample {
   protected def before = coll.drop
 
   "A bson doc" should {
-    "should convert a sub doc properly when puling it out" in {
+    "should convert a sub doc properly when pulling it out" in {
       val doc = Bson.doc("test" -> Bson.doc("key" -> 1))
       doc.asOpt[BsonDoc]("test").get.as[Int]("key") must beEqualTo(1)
+    }
+    "should support an option for a BsonDoc which has Null values which should be None" in {
+      val doc = Bson.doc(
+        "test" -> null,
+        "test2" -> "fabse"
+      )
+      doc.asNonNullOpt[String]("test") must beEqualTo(None)
+      doc.asNonNullOpt[String]("test2").get must beEqualTo("fabse")
     }
     "should convert case clases and scala data structures to a proper document" in {
       val bsonDoc = Bson.doc(

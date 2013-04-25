@@ -161,6 +161,16 @@ case class BsonDoc(elements: Seq[(String, BsonElement)]) extends BsonElement {
     case None => None
   }
 
+  /** return None if the key is found but the value is a BsonNull **/
+  def asNonNullOpt[T](key: String)(implicit c: FromBsonElement[T]): Option[T] = elements.find(kv => kv._1 == key) match {
+    case Some(kv) => kv._2 match {
+      case null => None
+      case BsonNull => None
+      case e: BsonElement => Some(c.fromBson(e))
+    }
+    case None => None
+  }
+
   override def toString() =  toStr()
 
   import BsonDoc.indent
