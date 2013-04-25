@@ -113,6 +113,10 @@ trait FromBsonImplicits {
     def fromBson(v: BsonElement): String = v.asInstanceOf[BsonString].value
   }
 
+  implicit object DocFromBsonElement extends FromBsonElement[BsonDoc] {
+    def fromBson(v: BsonElement): BsonDoc = v.asInstanceOf[BsonDoc]
+  }
+
   implicit object IntFromBsonElement extends FromBsonElement[Int] {
     def fromBson(v: BsonElement): Int = v.asInstanceOf[BsonInt].value
   }

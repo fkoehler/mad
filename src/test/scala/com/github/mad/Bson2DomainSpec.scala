@@ -50,6 +50,10 @@ class Bson2DomainSpec extends Specification with BeforeExample {
   protected def before = coll.drop
 
   "A bson doc" should {
+    "should convert a sub doc properly when puling it out" in {
+      val doc = Bson.doc("test" -> Bson.doc("key" -> 1))
+      doc.asOpt[BsonDoc]("test").get.as[Int]("key") must beEqualTo(1)
+    }
     "should convert case clases and scala data structures to a proper document" in {
       val bsonDoc = Bson.doc(
         "_id" -> 1,
@@ -60,7 +64,6 @@ class Bson2DomainSpec extends Specification with BeforeExample {
         "object" -> Model(1, 5, Map("k1" -> "v1"), None, List("Fabian", "rockt"), List(Model(2, 6))),
         "listObjects" -> List(Model(1, 5), Model(2, 6))
       )
-      println(bsonDoc.toString())
 
       val op: Option[Int] = None
       true must beEqualTo(true)
@@ -101,7 +104,6 @@ class Bson2DomainSpec extends Specification with BeforeExample {
         "listString" -> List("3", "4", "5")
       )
 
-      println(bsonDoc)
       bsonDoc must beEqualTo(Bson.doc(
         "_id" -> 1,
         "listString" -> Bson.arr("3", "4", "5")
