@@ -62,6 +62,24 @@ class Bson2DomainSpec extends Specification with BeforeExample {
       doc.asNonNullOpt[String]("test") must beEqualTo(None)
       doc.asNonNullOpt[String]("test2").get must beEqualTo("fabse")
     }
+    "should convert a doc to a List if it is a single item" in {
+      val doc = Bson.doc(
+        "test" -> Bson.doc("test2" -> "fabse")
+      )
+      doc.as[List[BsonDoc]]("test") must beEqualTo(List(Bson.doc("test2" -> "fabse")))
+    }
+    "should convert a doc to a Seq if it is a single item" in {
+      val doc = Bson.doc(
+        "test" -> Bson.doc("test2" -> "fabse")
+      )
+      doc.as[Seq[BsonDoc]]("test") must beEqualTo(Seq(Bson.doc("test2" -> "fabse")))
+    }
+    "should convert a Bson.arr() to a List as usual" in {
+      val doc = Bson.doc(
+        "test" -> Bson.arr(Bson.doc("test2" -> "fabse"))
+      )
+      doc.as[List[BsonDoc]]("test") must beEqualTo(List(Bson.doc("test2" -> "fabse")))
+    }
     "should convert case clases and scala data structures to a proper document" in {
       val bsonDoc = Bson.doc(
         "_id" -> 1,

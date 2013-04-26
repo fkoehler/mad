@@ -80,11 +80,17 @@ trait ToBsonImplicits {
 trait FromBsonImplicits {
 
   implicit def seqFromBsonElement[T](implicit c: FromBsonElement[T]) = new FromBsonElement[Seq[T]] {
-    def fromBson(v: BsonElement): Seq[T] = v.asInstanceOf[BsonArray].elements.map(c.fromBson(_))
+    def fromBson(v: BsonElement): Seq[T] = v match {
+      case e: BsonDoc => Seq(c.fromBson(e))
+      case e: BsonArray => e.elements.map(c.fromBson(_)).toList
+    }
   }
 
   implicit def listFromBsonElement[T](implicit c: FromBsonElement[T]) = new FromBsonElement[List[T]] {
-    def fromBson(v: BsonElement): List[T] = v.asInstanceOf[BsonArray].elements.map(c.fromBson(_)).toList
+    def fromBson(v: BsonElement): List[T] = v match {
+      case e: BsonDoc => List(c.fromBson(e))
+      case e: BsonArray => e.elements.map(c.fromBson(_)).toList
+    }
   }
 
   implicit def mapFromBsonElement[T](implicit c: FromBsonElement[T]) = new FromBsonElement[Map[String, T]] {
