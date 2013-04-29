@@ -17,6 +17,12 @@ class CollectionSpec extends Specification with BeforeExample {
   val simpleDoc = Bson.doc("_id" -> 1, "name" -> "fabian")
 
   "The collection class" should {
+    "load an objectid" in {
+      coll.insert(Bson.doc("name" -> "fabian"))
+      val doc = coll.findOne(Bson.doc("name" -> "fabian")).get
+      doc.as[String]("name") must equalTo("fabian")
+      doc.get("_id") must beAnInstanceOf[BsonObjectId]
+    }
     "find one doc async" in {
       coll.insert(simpleDoc)
       Await.result(coll.findOneAsync(Bson.doc("_id" -> 1)), timeout).get must equalTo(simpleDoc)

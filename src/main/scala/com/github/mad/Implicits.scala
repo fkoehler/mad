@@ -32,6 +32,7 @@ trait BsonDocImplicits {
 
   implicit def bsonElement2Element(key: String, element: BsonElement): ElementAssignable = {
     element match {
+      case BsonObjectId(v) => new ObjectIdElement(key, new ObjectId(v))
       case BsonDouble(v) => new DoubleElement(key, v)
       case BsonString(v) =>
         Option(v) match {
@@ -71,6 +72,7 @@ trait BsonDocImplicits {
 
   private def elementToBsonElement(element: Element): BsonElement = {
     element.getType match {
+      case ElementType.OBJECT_ID => BsonObjectId(elemValAs[ObjectId](element).toString)
       case ElementType.INTEGER => BsonInt(elemValAs[Int](element))
       case ElementType.DOUBLE => BsonDouble(elemValAs[Double](element))
       case ElementType.LONG => BsonLong(elemValAs[Long](element))
@@ -83,7 +85,7 @@ trait BsonDocImplicits {
         (array, element) =>
           array :+ elementToBsonElement(element)
       }
-      case _ => throw new RuntimeException("not yet implemented. go ahead.")
+      case _ => throw new RuntimeException("not yet implemented. go ahead: " + element.getName + " " + element.getType + " " + element)
     }
   }
 

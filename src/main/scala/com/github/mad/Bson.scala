@@ -168,7 +168,7 @@ case class BsonDoc(elements: Seq[(String, BsonElement)]) extends BsonElement {
   }
 
   /** return None if the key is found but the value is a BsonNull **/
-  def asNonNullOpt[T](key: String)(implicit c: FromBsonElement[T]): Option[T] = elements.find(kv => kv._1 == key) match {
+  def asNullableOpt[T](key: String)(implicit c: FromBsonElement[T]): Option[T] = elements.find(kv => kv._1 == key) match {
     case Some(kv) => kv._2 match {
       case null => None
       case BsonNull => None
@@ -202,6 +202,10 @@ case class BsonArray(elements: Seq[BsonElement]) extends BsonElement {
 }
 
 case class BsonInt(value: Int) extends BsonElement {
+  def toStr(level: Int) = value.toString
+}
+
+case class BsonObjectId(value: String) extends BsonElement {
   def toStr(level: Int) = value.toString
 }
 

@@ -59,8 +59,8 @@ class Bson2DomainSpec extends Specification with BeforeExample {
         "test" -> null,
         "test2" -> "fabse"
       )
-      doc.asNonNullOpt[String]("test") must beEqualTo(None)
-      doc.asNonNullOpt[String]("test2").get must beEqualTo("fabse")
+      doc.asNullableOpt[String]("test") must beEqualTo(None)
+      doc.asNullableOpt[String]("test2").get must beEqualTo("fabse")
     }
     "should convert a doc to a List if it is a single item" in {
       val doc = Bson.doc(
