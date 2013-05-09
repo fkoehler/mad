@@ -4,6 +4,7 @@ import Implicits._
 import scala.language.implicitConversions
 import org.specs2.specification.BeforeExample
 import org.specs2.mutable.Specification
+import scala.concurrent.Await
 
 case class Model(id: Int, value: Int, keys: Map[String, Any] = Map(), op: Option[Int] = None, list: List[String] = List(),
                  listObj: List[Model] = List())
@@ -121,6 +122,12 @@ class Bson2DomainSpec extends Specification with BeforeExample {
       val result = db("test2").findOneAs[Model](Bson.doc("_id" -> 1)).get
 
       model must beEqualTo(result)
+    }
+    "find async as" in {
+      val model = Model(1, 5)
+      coll.insert(model)
+      Await.result(coll.findAsyncAs[Model](Bson.doc("_id" -> 1)), timeout).next must beEqualTo(model)
+      Await.result(coll.findAsyncAs[Model](Find().query(Bson.doc("_id" -> 1))), timeout).next must beEqualTo(model)
     }
   }
   "A bson doc 2" should {

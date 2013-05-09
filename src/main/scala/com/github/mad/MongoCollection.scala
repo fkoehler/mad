@@ -129,6 +129,15 @@ trait AsyncCollection extends AsyncHelpers {
   def findAsync(find: MadBuilder): Future[MongoIterator] =
     wrapCallback((cb: Callback[MadMongoIterator[Document]]) => underlying.findAsync(cb, find.build())).map(MongoIterator(_))
 
+  def findAsyncAs[T](doc: BsonDoc)(implicit c: FromBsonDoc[T]): Future[Iterator[T]] = findAsyncAs[T](Find().query(doc))
+
+  def findAsyncAs[T](find: MadBuilder)(implicit c: FromBsonDoc[T]): Future[Iterator[T]] = {
+    findAsync(find).map(it => new Iterator[T] {
+      def hasNext: Boolean = it.hasNext
+      def next(): T = c.fromBson(it.next())
+    })
+  }
+
   def findAsyncAndApply(query: BsonDoc)(docFunc: (BsonDoc) => Unit): Future[Unit] = findAsync(query).map(_.foreach(docFunc))
 
   def findAsyncAndApply(find: MadBuilder)(docFunc: (BsonDoc) => Unit): Future[Unit] = findAsync(find).map(_.foreach(docFunc))
