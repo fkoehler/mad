@@ -82,6 +82,8 @@ trait SyncCollection {
 
   def count(query: BsonDoc): Long = underlying.count(query)
 
+  def count(query: BsonDoc): Long = underlying.count(query)
+
 }
 
 trait AsyncCollection extends AsyncHelpers {
