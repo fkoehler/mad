@@ -88,8 +88,8 @@ trait FromBsonImplicits {
 
   implicit def listFromBsonElement[T](implicit c: FromBsonElement[T]) = new FromBsonElement[List[T]] {
     def fromBson(v: BsonElement): List[T] = v match {
-      case e: BsonDoc => List(c.fromBson(e))
       case e: BsonArray => e.elements.map(c.fromBson(_)).toList
+      case e: BsonElement => List(c.fromBson(e))
     }
   }
 

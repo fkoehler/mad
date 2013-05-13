@@ -69,6 +69,12 @@ class Bson2DomainSpec extends Specification with BeforeExample {
       )
       doc.as[List[BsonDoc]]("test") must beEqualTo(List(Bson.doc("test2" -> "fabse")))
     }
+    "should convert a string to a List because it is a single item" in {
+      val doc = Bson.doc(
+        "test" -> "fabse"
+      )
+      doc.as[List[String]]("test") must beEqualTo(List("fabse"))
+    }
     "should convert a doc to a Seq if it is a single item" in {
       val doc = Bson.doc(
         "test" -> Bson.doc("test2" -> "fabse")
