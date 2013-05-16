@@ -44,6 +44,7 @@ trait BsonDocImplicits {
       case BsonLong(v) => new LongElement(key, v)
       case BsonDateTime(v) => new TimestampElement(key, v.getMillis)
       case doc@BsonDoc(v) => new DocumentElement(key, bsonDoc2Document(doc))
+      case null => new NullElement(key)
       case BsonNull => new NullElement(key)
       case BsonAny(v) => v match {
         case v: String => new StringElement(key, v)

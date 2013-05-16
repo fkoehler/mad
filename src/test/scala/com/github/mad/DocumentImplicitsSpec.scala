@@ -15,7 +15,8 @@ class DocumentImplicitsSpec extends Specification {
         "_id" -> 12345,
         "name" -> "fabian",
         "double" -> 34.456,
-        "date" -> date
+        "date" -> date,
+        "nullValue" -> null
       )
 
       val doc = BuilderFactory.start
@@ -23,6 +24,7 @@ class DocumentImplicitsSpec extends Specification {
         .add("name", "fabian")
         .add("double", 34.456)
         .add("date", date.toDate)
+        .addNull("nullValue")
         .build
 
       bsonDoc2Document(bsonDoc) must equalTo(doc)
